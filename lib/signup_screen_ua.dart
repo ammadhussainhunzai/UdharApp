@@ -1,9 +1,101 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:udhar_app/login_screen_ua.dart';
 
-class SignupScreenUa extends StatelessWidget {
+class SignupScreenUa extends StatefulWidget {
   const SignupScreenUa({super.key});
+
+  @override
+  State<SignupScreenUa> createState() => _SignupScreenUaState();
+}
+
+class _SignupScreenUaState extends State<SignupScreenUa> {
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+
+  Future<void> signup() async {
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter email and password'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully!'),
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreenUa(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Signup failed';
+
+      if (e.code == 'weak-password') {
+        message = 'Password is too weak';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'This email is already registered';
+      } else if (e.code == 'invalid-email') {
+        message = 'Please enter a valid email';
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong'),
+        ),
+      );
+    }
+
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +109,7 @@ class SignupScreenUa extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               Center(
                 child: Image.asset(
                   'assets/logo.png',
@@ -24,9 +117,9 @@ class SignupScreenUa extends StatelessWidget {
                 ),
               ),
 
-               SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-               Center(
+              const Center(
                 child: Text(
                   'Create Account',
                   style: TextStyle(
@@ -36,9 +129,9 @@ class SignupScreenUa extends StatelessWidget {
                 ),
               ),
 
-               SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-               Center(
+              const Center(
                 child: Text(
                   'Start managing your credit and transactions\nsecurely',
                   textAlign: TextAlign.center,
@@ -49,61 +142,26 @@ class SignupScreenUa extends StatelessWidget {
                 ),
               ),
 
-               SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-               Text(
+              // Full Name
+              const Text(
                 'Full Name',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-
-               SizedBox(height: 6),
-
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Enter your Email',
-                  prefixIcon:  Icon(Icons.person_outline),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-
-               SizedBox(height: 15),
-
-               Text(
-                'Email Address',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-
-               SizedBox(height: 6),
-
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Enter password',
-                  prefixIcon:  Icon(Icons.email_outlined),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-               SizedBox(height: 15),
-
-               Text(
-                'Password',
-                style: TextStyle(fontWeight: FontWeight.w500),
               ),
 
               const SizedBox(height: 6),
 
               TextField(
+                controller: nameController,
                 decoration: InputDecoration(
+                  hintText: 'Enter your name',
+                  prefixIcon: const Icon(
+                    Icons.person_outline,
+                  ),
                   filled: true,
-                  hintText: 'Create a strong password',
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -111,20 +169,85 @@ class SignupScreenUa extends StatelessWidget {
                 ),
               ),
 
-               SizedBox(height: 45),
+              const SizedBox(height: 15),
+
+              // Email
+              const Text(
+                'Email Address',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Enter your email',
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              // Password
+              const Text(
+                'Password',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: 'Create a strong password',
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 45),
+
               SizedBox(
                 width: double.infinity,
                 height: 50,
+
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: isLoading ? null : signup,
+
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:  Color(0xff0757D9),
+                    backgroundColor: const Color(0xff0757D9),
                     foregroundColor: Colors.white,
+
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
+
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                    color: Colors.white,
+                  )
+                      : const Text(
                     'Sign Up  →',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -133,8 +256,10 @@ class SignupScreenUa extends StatelessWidget {
                 ),
               ),
 
-               SizedBox(height: 15),
-               Center(
+              const SizedBox(height: 15),
+
+              // Terms
+              const Center(
                 child: Text(
                   'By signing up, you agree to Udhaar’s Terms of Service\n'
                       '& Privacy Policy',
@@ -146,36 +271,42 @@ class SignupScreenUa extends StatelessWidget {
                 ),
               ),
 
-               SizedBox(height: 30),
+              const SizedBox(height: 30),
 
+              // Login
               Center(
                 child: RichText(
-                  text:  TextSpan(
-                    style: TextStyle(
+                  text: TextSpan(
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
                     ),
+
                     children: [
-                      TextSpan(
+
+                      const TextSpan(
                         text: 'Already have an account? ',
                       ),
+
                       TextSpan(
                         text: 'Login',
-                        style: TextStyle(
+
+                        style: const TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,
                         ),
+
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>  LoginScreenUa(),
+                                builder: (context) =>
+                                const LoginScreenUa(),
                               ),
                             );
                           },
                       ),
-
                     ],
                   ),
                 ),
